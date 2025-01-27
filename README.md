@@ -31,6 +31,7 @@ However we've decided to **not** inclode:
 
 - Horizon & Layer: as they are essentially the same in the domain, for now only ProfileElement is included.
 - Sample: because in soil science it is often not distinguishable from the specimen.
+- SoilMap, SoilMappingUnit, SoilTopologicalUnit: This part may be added in future
 
 Diagrams
 --------
