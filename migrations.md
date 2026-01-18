@@ -2,13 +2,12 @@
 
 We are relying on [graphile-migrate](https://github.com/graphile/migrate) for PostgreSQL schema management.
 
-Make sure you have the latest LTS version of Node https://nodejs.org/en/. No need for anything else since this repo comes with a `yarn no install` ready to use.
+This project uses **Yarn 4 with zero-install** - all dependencies are committed to the repository in `.yarn/cache`, so no `yarn install` is needed after cloning.
 
-Make sure you run the following commands from inside `iso28258` root folder the 1º time you use this.
-You only need to run bellow commands once:
+## Prerequisites
 
--  `corepack enable`
--  `yarn install`
+- [Node.js LTS](https://nodejs.org/en/)
+- Run `corepack enable` once to enable Yarn
 
 You should be ready to go!
 
@@ -38,9 +37,11 @@ The following env variables need to be defined while running command:
 `ROOT_DATABASE_URL=postgres://admin:admin@localhost:5432/postgres DATABASE_URL=postgres://admin:admin@localhost:5432/my_database SHADOW_DATABASE_URL=postgres://admin:admin@localhost:5432/local_shadow yarn run graphile-migrate [command] [args]`
 
 
-For simplicity, you can set an .env file (Use .env vars carefully, avoid using this in prod) and use the command as bellow. For this you need to replace `graphile-migrate` by `gm` since it has been configured as a script on [package.json](./package.json)
+For simplicity, set up an `.env` file (use .env vars carefully, avoid using this in prod) and use the short command:
 
-`yarn run gm [command] [args]`
+`yarn gm [command] [args]`
+
+This is configured as a script in [package.json](./package.json).
 
 - **Production:**
 
@@ -50,7 +51,7 @@ For simplicity, you can set an .env file (Use .env vars carefully, avoid using t
 
 Should not be needed for current project, since it's already been initialised:
 
-`yarn run graphile-migrate init`
+`yarn gm init`
 
 ### Initialize DB
 
@@ -63,14 +64,14 @@ Obviously does NOT run the current working migration from current.sql. For use i
 
 In production, most users only run graphile-migrate migrate which operates solely on the main database - there is no need for a shadow database in production.
 
-`yarn run graphile-migrate migrate`
+`yarn gm migrate`
 
 ### watch
 
 Runs any un-executed committed migrations and then runs and watches the current
 migration from current.sql, re-running it on any change. For development purposes only.
 
-`yarn run graphile-migrate watch`
+`yarn gm watch`
 
 ### commit
 
@@ -84,7 +85,7 @@ Options:
                  newlines.                                              [string]
 ```
 
-`yarn run graphile-migrate commit --message "missing rls"`
+`yarn gm commit --message "missing rls"`
 
 Please always add a commit message, so that we can easily identify
 what is done in the file from its name only.
@@ -102,9 +103,9 @@ entry from **ONLY** the local database.
 
 **Development only, and liable to cause conflicts with other developers - be careful.**
 
-`yarn run graphile-migrate uncommit`
+`yarn gm uncommit`
 
-Assuming nothing else has changed, `graphile-migrate uncommit && graphile-migrate commit`
+Assuming nothing else has changed, `yarn gm uncommit && yarn gm commit`
 should result in the exact same hash.
 
 ### reset
@@ -121,12 +122,12 @@ Options:
                                                       [boolean] [default: false]
 ```
 
-`yarn run graphile-migrate reset --erase`
+`yarn gm reset --erase`
 
 
-#### Initailizing an empty Database with Graphile Migrate
+#### Initializing an empty Database with Graphile Migrate
 
-You can initialize an empty DB automaticaly with Graphile Migrate by running `reset` comand.
+You can initialize an empty DB automatically with Graphile Migrate by running the `reset` command.
 
 ### run
 
@@ -146,7 +147,7 @@ Options:
                   than application database.          [boolean] [default: false]
 ```
 
-`yarn run graphile-migrate run migrations/setup/extensions.sql`
+`yarn gm run migrations/setup/extensions.sql`
 
 ## Default commands
 
@@ -154,7 +155,7 @@ Options:
 
 Define or replace `MY_DATABASE` and run:
 
-`ROOT_DATABASE_URL=postgres://admin:admin@localhost:5432/postgres DATABASE_URL=postgres://admin:admin@localhost:5432/${MY_DATABASE} SHADOW_DATABASE_URL=postgres://admin:admin@localhost:5432/local_shadow yarn run graphile-migrate reset --erase`
+`ROOT_DATABASE_URL=postgres://admin:admin@localhost:5432/postgres DATABASE_URL=postgres://admin:admin@localhost:5432/${MY_DATABASE} SHADOW_DATABASE_URL=postgres://admin:admin@localhost:5432/local_shadow yarn gm reset --erase`
 
 ### Reset database
 
@@ -170,4 +171,4 @@ WHERE
 
 Then run the same command as previous one:
 
-`ROOT_DATABASE_URL=postgres://admin:admin@localhost:5432/postgres DATABASE_URL=postgres://admin:admin@localhost:5432/${MY_DATABASE} SHADOW_DATABASE_URL=postgres://admin:admin@localhost:5432/local_shadow yarn run graphile-migrate reset --erase`
+`ROOT_DATABASE_URL=postgres://admin:admin@localhost:5432/postgres DATABASE_URL=postgres://admin:admin@localhost:5432/${MY_DATABASE} SHADOW_DATABASE_URL=postgres://admin:admin@localhost:5432/local_shadow yarn gm reset --erase`

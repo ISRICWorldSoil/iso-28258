@@ -279,25 +279,25 @@ erDiagram
 
 # Installation instructions
 
-The tool uses [graphile-migrate](https://github.com/graphile/migrate) as a database configuration/migration tool. In order to launch and update the database:
+The tool uses [graphile-migrate](https://github.com/graphile/migrate) as a database configuration/migration tool. This project uses **Yarn 4 with zero-install** - all dependencies are committed to the repository, so no `yarn install` is needed after cloning.
 
-### Using it the 1º time
+## Using it the 1st time
 
-1. Copy [.env.dist](.env.dist) into `.env`and make sure you edit the correct parameters according to your needs: `user` `password` `database name`
-2. Make sure you have NodeJS installed on your system and run `corepack enable` from the terminal.
-3. From inside the terminal, go to this repo root folder `yarn install`
-4. After the previous step run `yarn run graphile-migrate reset --erase` 
-5. You should now have a new database ready to go.
+1. Copy [.env.dist](.env.dist) into `.env` and edit the connection parameters: `user`, `password`, `database name`
+2. Make sure you have Node.js (LTS) installed and run `corepack enable` from the terminal
+3. Run `yarn gm reset --erase` to create the database with all migrations applied
+4. You should now have a new database ready to go
 
-### Using it for development 
+## Using it for development
 
-After running the previous batch you should have a new database ready to go. In a quick resume any SQL code can be done as:
+After running the previous steps you should have a database ready. Development workflow:
 
-1. Edit [migrations/current.sql](migrations/current.sql) and insert your code
-2. Run `yarn run graphile-migrate watch` and once you are satisfied with your code commit it using `yarn run graphile-migrate commit --message "Your message"`
-3. Check and test your implementation.
+1. Edit [migrations/current.sql](migrations/current.sql) and insert your SQL code
+2. Run `yarn gm watch` to apply changes automatically as you edit
+3. Once satisfied, commit the migration: `yarn gm commit --message "Your message"`
+4. Check and test your implementation
 
-Please read carefully [migrations.md](migrations.md) in order to understand how the migration tool is configured.
+Please read [migrations.md](migrations.md) for detailed information about the migration tool configuration.
 
 
 

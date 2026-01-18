@@ -1,12 +1,49 @@
+# Environment
 .env
-node_modules
-*.swp
-*.swn
-*.swo
-*.swk
-*.swl
-*.swm
-*.swj
+
+# Editor/IDE
+*.sw*
+.vscode
+
+# macOS
+.DS_Store
+._*
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.Python
+*.manifest
+*.spec
+.installed.cfg
+
+# Virtual environments
+.venv
+venv/
+ENV/
+.python-version
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+
+# Jupyter
+.ipynb_checkpoints
+
+# Data (ETL)
+data/
 
 # Yarn using Zero-Installs
 

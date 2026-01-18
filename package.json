@@ -1,6 +1,6 @@
 {
   "name": "wosis",
-  "packageManager": "yarn@3.1.1",
+  "packageManager": "yarn@4.3.1",
   "version": "1.0.0",
   "description": "iso25258 ISRIC implementation",
   "repository": {

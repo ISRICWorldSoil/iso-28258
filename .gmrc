@@ -92,11 +92,11 @@
    * afterAllMigrations: actions executed once all migrations are complete.
    */
   "afterAllMigrations": [
-    // {
-    //   "_": "command",
-    //   "shadow": true,
-    //   "command": "if [ \"$IN_TESTS\" != \"1\" ]; then ./scripts/dump-db; fi",
-    // },
+    {
+      "_": "command",
+      "shadow": false,
+      "command": "if [[ \"$GM_DBURL\" == *localhost* ]]; then pg_dump --schema-only --no-owner --exclude-schema=graphile_migrate --file=migrations/complete-final-schema.sql \"$GM_DBURL\"; else echo 'Skipping pg_dump: Not running on localhost'; fi"
+    }
   ],
 
   /*
