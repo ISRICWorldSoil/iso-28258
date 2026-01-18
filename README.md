@@ -299,5 +299,12 @@ After running the previous steps you should have a database ready. Development w
 
 Please read [migrations.md](migrations.md) for detailed information about the migration tool configuration.
 
+## Creating a release
 
+To create a new release (schema dump for downstream databases):
 
+```bash
+yarn make-release iso28258_v1.7.sql
+```
+
+This runs `pg_dump` with `--inserts` (data as INSERT statements), `--no-owner`, and exports the `core` and `metadata` schemas to the `releases/` folder.

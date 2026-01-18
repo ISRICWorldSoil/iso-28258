@@ -109,6 +109,37 @@ COMMENT ON FUNCTION core.check_result_value() IS 'Checks if the value assigned t
 
 
 --
+-- Name: check_result_value_plot(); Type: FUNCTION; Schema: core; Owner: -
+--
+
+CREATE FUNCTION core.check_result_value_plot() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    observation core.observation_phys_chem_plot%ROWTYPE;
+BEGIN
+    SELECT *
+      INTO observation
+      FROM core.observation_phys_chem_plot
+     WHERE observation_phys_chem_plot_id = NEW.observation_phys_chem_plot_id;
+
+    IF NEW.value < observation.value_min OR NEW.value > observation.value_max THEN
+        RAISE EXCEPTION 'Result value outside admissable bounds for the related observation.';
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$;
+
+
+--
+-- Name: FUNCTION check_result_value_plot(); Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON FUNCTION core.check_result_value_plot() IS 'Checks if the value assigned to a result record is within the numerical bounds declared in the related observation (fields value_min and value_max).';
+
+
+--
 -- Name: check_result_value_specimen(); Type: FUNCTION; Schema: core; Owner: -
 --
 
@@ -771,6 +802,61 @@ COMMENT ON FUNCTION core.etl_insert_plot_individual(plot_id integer, individual_
 
 
 --
+-- Name: result_desc_element; Type: TABLE; Schema: core; Owner: -
+--
+
+CREATE TABLE core.result_desc_element (
+    element_id integer NOT NULL,
+    property_desc_element_id integer NOT NULL,
+    thesaurus_desc_element_id integer NOT NULL
+);
+
+
+--
+-- Name: TABLE result_desc_element; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TABLE core.result_desc_element IS 'Descriptive results for the Element feature interest.';
+
+
+--
+-- Name: COLUMN result_desc_element.element_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_desc_element.element_id IS 'Foreign key to the corresponding Element feature of interest.';
+
+
+--
+-- Name: etl_insert_result_desc_element(integer, text, text); Type: FUNCTION; Schema: core; Owner: -
+--
+
+CREATE FUNCTION core.etl_insert_result_desc_element(element_id integer, property_uri text, thesaurus_label text) RETURNS core.result_desc_element
+    LANGUAGE sql
+    AS $$
+    INSERT INTO core.result_desc_element (element_id, property_desc_element_id, thesaurus_desc_element_id)
+    SELECT etl_insert_result_desc_element.element_id,
+           p.property_desc_element_id,
+           t.thesaurus_desc_element_id
+    FROM core.thesaurus_desc_element t
+    INNER JOIN core.observation_desc_element o
+        ON t.thesaurus_desc_element_id = o.thesaurus_desc_element_id
+    INNER JOIN core.property_desc_element p
+        ON o.property_desc_element_id = p.property_desc_element_id
+    WHERE p.uri ILIKE '%' || etl_insert_result_desc_element.property_uri
+      AND t.label ILIKE etl_insert_result_desc_element.thesaurus_label
+    ON CONFLICT DO NOTHING RETURNING *;
+$$;
+
+
+--
+-- Name: FUNCTION etl_insert_result_desc_element(element_id integer, property_uri text, thesaurus_label text); Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON FUNCTION core.etl_insert_result_desc_element(element_id integer, property_uri text, thesaurus_label text) IS 'Inserts a descriptive result for an element. Looks up the observation by property URI
+and thesaurus value label. Returns the inserted record or nothing if it already exists.';
+
+
+--
 -- Name: result_desc_plot; Type: TABLE; Schema: core; Owner: -
 --
 
@@ -824,6 +910,155 @@ $$;
 --
 
 COMMENT ON FUNCTION core.etl_insert_result_desc_plot(plot_id bigint, prop text, value text) IS 'Inserts a new result_desc_plot into the core.result_desc_plot table. If the result_desc_plot already exists, it returns the existing record.';
+
+
+--
+-- Name: result_desc_specimen; Type: TABLE; Schema: core; Owner: -
+--
+
+CREATE TABLE core.result_desc_specimen (
+    specimen_id integer NOT NULL,
+    property_desc_specimen_id integer NOT NULL,
+    thesaurus_desc_specimen_id integer NOT NULL
+);
+
+
+--
+-- Name: TABLE result_desc_specimen; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TABLE core.result_desc_specimen IS 'Descriptive results for the Specimen feature interest.';
+
+
+--
+-- Name: COLUMN result_desc_specimen.specimen_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_desc_specimen.specimen_id IS 'Foreign key to the corresponding Specimen feature of interest.';
+
+
+--
+-- Name: COLUMN result_desc_specimen.property_desc_specimen_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_desc_specimen.property_desc_specimen_id IS 'Partial foreign key to the corresponding Observation.';
+
+
+--
+-- Name: COLUMN result_desc_specimen.thesaurus_desc_specimen_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_desc_specimen.thesaurus_desc_specimen_id IS 'Partial foreign key to the corresponding Observation.';
+
+
+--
+-- Name: etl_insert_result_desc_specimen(integer, text, text); Type: FUNCTION; Schema: core; Owner: -
+--
+
+CREATE FUNCTION core.etl_insert_result_desc_specimen(specimen_id integer, property_uri text, thesaurus_label text) RETURNS core.result_desc_specimen
+    LANGUAGE sql
+    AS $$
+    INSERT INTO core.result_desc_specimen (specimen_id, property_desc_specimen_id, thesaurus_desc_specimen_id)
+    SELECT etl_insert_result_desc_specimen.specimen_id,
+           p.property_desc_specimen_id,
+           t.thesaurus_desc_specimen_id
+    FROM core.thesaurus_desc_specimen t
+    INNER JOIN core.observation_desc_specimen o
+        ON t.thesaurus_desc_specimen_id = o.thesaurus_desc_specimen_id
+    INNER JOIN core.property_desc_specimen p
+        ON o.property_desc_specimen_id = p.property_desc_specimen_id
+    WHERE p.uri ILIKE '%' || etl_insert_result_desc_specimen.property_uri
+      AND t.label ILIKE etl_insert_result_desc_specimen.thesaurus_label
+    ON CONFLICT DO NOTHING RETURNING *;
+$$;
+
+
+--
+-- Name: FUNCTION etl_insert_result_desc_specimen(specimen_id integer, property_uri text, thesaurus_label text); Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON FUNCTION core.etl_insert_result_desc_specimen(specimen_id integer, property_uri text, thesaurus_label text) IS 'Inserts a descriptive result for a specimen. Looks up the observation by property URI
+and thesaurus value label. Returns the inserted record or nothing if it already exists.';
+
+
+--
+-- Name: result_phys_chem_plot; Type: TABLE; Schema: core; Owner: -
+--
+
+CREATE TABLE core.result_phys_chem_plot (
+    result_phys_chem_plot_id integer NOT NULL,
+    observation_phys_chem_plot_id integer NOT NULL,
+    plot_id integer NOT NULL,
+    value numeric NOT NULL,
+    organisation_id integer
+);
+
+
+--
+-- Name: TABLE result_phys_chem_plot; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TABLE core.result_phys_chem_plot IS 'Physio-chemical results for the Plot feature of interest.';
+
+
+--
+-- Name: COLUMN result_phys_chem_plot.result_phys_chem_plot_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_phys_chem_plot.result_phys_chem_plot_id IS 'Synthetic primary key.';
+
+
+--
+-- Name: COLUMN result_phys_chem_plot.observation_phys_chem_plot_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_phys_chem_plot.observation_phys_chem_plot_id IS 'Foreign key to the corresponding physio-chemical observation.';
+
+
+--
+-- Name: COLUMN result_phys_chem_plot.plot_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_phys_chem_plot.plot_id IS 'Foreign key to the corresponding Plot instance.';
+
+
+--
+-- Name: COLUMN result_phys_chem_plot.value; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_phys_chem_plot.value IS 'Numerical value resulting from applying the referred observation to the referred plot.';
+
+
+--
+-- Name: COLUMN result_phys_chem_plot.organisation_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_phys_chem_plot.organisation_id IS 'Foreign key to the organisation responsible for the measurement.';
+
+
+--
+-- Name: etl_insert_result_phys_chem_plot(integer, integer, integer, numeric); Type: FUNCTION; Schema: core; Owner: -
+--
+
+CREATE FUNCTION core.etl_insert_result_phys_chem_plot(observation_phys_chem_plot_id integer, plot_id integer, organisation_id integer, value numeric) RETURNS core.result_phys_chem_plot
+    LANGUAGE sql
+    AS $$
+    INSERT INTO core.result_phys_chem_plot (observation_phys_chem_plot_id, plot_id, organisation_id, value)
+    VALUES (
+              etl_insert_result_phys_chem_plot.observation_phys_chem_plot_id,
+              etl_insert_result_phys_chem_plot.plot_id,
+              etl_insert_result_phys_chem_plot.organisation_id,
+              etl_insert_result_phys_chem_plot.value
+           )
+    ON CONFLICT DO NOTHING RETURNING *;
+$$;
+
+
+--
+-- Name: FUNCTION etl_insert_result_phys_chem_plot(observation_phys_chem_plot_id integer, plot_id integer, organisation_id integer, value numeric); Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON FUNCTION core.etl_insert_result_phys_chem_plot(observation_phys_chem_plot_id integer, plot_id integer, organisation_id integer, value numeric) IS 'Inserts a new result_phys_chem_plot into the core.result_phys_chem_plot table. If the result_phys_chem_plot already exists, it returns the existing record.';
 
 
 --
@@ -898,6 +1133,225 @@ $$;
 --
 
 COMMENT ON FUNCTION core.etl_insert_result_phys_chem_specimen(observation_phys_chem_specimen_id integer, specimen_id integer, organisation_id integer, value numeric) IS 'Inserts a new result_phys_chem_specimen into the core.result_phys_chem_specimen table. If the result_phys_chem_specimen already exists, it returns the existing record.';
+
+
+--
+-- Name: result_text_element; Type: TABLE; Schema: core; Owner: -
+--
+
+CREATE TABLE core.result_text_element (
+    result_text_element_id integer NOT NULL,
+    observation_text_element_id integer NOT NULL,
+    element_id integer NOT NULL,
+    value text NOT NULL
+);
+
+
+--
+-- Name: TABLE result_text_element; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TABLE core.result_text_element IS 'Free text results for the Element feature of interest.';
+
+
+--
+-- Name: COLUMN result_text_element.result_text_element_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_text_element.result_text_element_id IS 'Synthetic primary key';
+
+
+--
+-- Name: COLUMN result_text_element.observation_text_element_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_text_element.observation_text_element_id IS 'Foreign key to the corresponding text observation';
+
+
+--
+-- Name: COLUMN result_text_element.element_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_text_element.element_id IS 'Foreign key to the corresponding Element instance';
+
+
+--
+-- Name: COLUMN result_text_element.value; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_text_element.value IS 'The free text result value';
+
+
+--
+-- Name: etl_insert_result_text_element(integer, text, text); Type: FUNCTION; Schema: core; Owner: -
+--
+
+CREATE FUNCTION core.etl_insert_result_text_element(element_id integer, property_uri text, value text) RETURNS core.result_text_element
+    LANGUAGE sql
+    AS $$
+    INSERT INTO core.result_text_element (observation_text_element_id, element_id, value)
+    SELECT o.observation_text_element_id,
+           etl_insert_result_text_element.element_id,
+           etl_insert_result_text_element.value
+    FROM core.observation_text_element o
+    INNER JOIN core.property_text p ON o.property_text_id = p.property_text_id
+    WHERE p.uri ILIKE '%' || etl_insert_result_text_element.property_uri
+    ON CONFLICT DO NOTHING RETURNING *;
+$$;
+
+
+--
+-- Name: FUNCTION etl_insert_result_text_element(element_id integer, property_uri text, value text); Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON FUNCTION core.etl_insert_result_text_element(element_id integer, property_uri text, value text) IS 'Inserts a free text result for an element. Looks up the observation by property URI.
+Returns the inserted record or nothing if it already exists.';
+
+
+--
+-- Name: result_text_plot; Type: TABLE; Schema: core; Owner: -
+--
+
+CREATE TABLE core.result_text_plot (
+    result_text_plot_id integer NOT NULL,
+    observation_text_plot_id integer NOT NULL,
+    plot_id integer NOT NULL,
+    value text NOT NULL
+);
+
+
+--
+-- Name: TABLE result_text_plot; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TABLE core.result_text_plot IS 'Free text results for the Plot feature of interest.';
+
+
+--
+-- Name: COLUMN result_text_plot.result_text_plot_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_text_plot.result_text_plot_id IS 'Synthetic primary key';
+
+
+--
+-- Name: COLUMN result_text_plot.observation_text_plot_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_text_plot.observation_text_plot_id IS 'Foreign key to the corresponding text observation';
+
+
+--
+-- Name: COLUMN result_text_plot.plot_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_text_plot.plot_id IS 'Foreign key to the corresponding Plot instance';
+
+
+--
+-- Name: COLUMN result_text_plot.value; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_text_plot.value IS 'The free text result value';
+
+
+--
+-- Name: etl_insert_result_text_plot(integer, text, text); Type: FUNCTION; Schema: core; Owner: -
+--
+
+CREATE FUNCTION core.etl_insert_result_text_plot(plot_id integer, property_uri text, value text) RETURNS core.result_text_plot
+    LANGUAGE sql
+    AS $$
+    INSERT INTO core.result_text_plot (observation_text_plot_id, plot_id, value)
+    SELECT o.observation_text_plot_id,
+           etl_insert_result_text_plot.plot_id,
+           etl_insert_result_text_plot.value
+    FROM core.observation_text_plot o
+    INNER JOIN core.property_text p ON o.property_text_id = p.property_text_id
+    WHERE p.uri ILIKE '%' || etl_insert_result_text_plot.property_uri
+    ON CONFLICT DO NOTHING RETURNING *;
+$$;
+
+
+--
+-- Name: FUNCTION etl_insert_result_text_plot(plot_id integer, property_uri text, value text); Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON FUNCTION core.etl_insert_result_text_plot(plot_id integer, property_uri text, value text) IS 'Inserts a free text result for a plot. Looks up the observation by property URI.
+Returns the inserted record or nothing if it already exists.';
+
+
+--
+-- Name: result_text_specimen; Type: TABLE; Schema: core; Owner: -
+--
+
+CREATE TABLE core.result_text_specimen (
+    result_text_specimen_id integer NOT NULL,
+    observation_text_specimen_id integer NOT NULL,
+    specimen_id integer NOT NULL,
+    value text NOT NULL
+);
+
+
+--
+-- Name: TABLE result_text_specimen; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TABLE core.result_text_specimen IS 'Free text results for the Specimen feature of interest.';
+
+
+--
+-- Name: COLUMN result_text_specimen.result_text_specimen_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_text_specimen.result_text_specimen_id IS 'Synthetic primary key';
+
+
+--
+-- Name: COLUMN result_text_specimen.observation_text_specimen_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_text_specimen.observation_text_specimen_id IS 'Foreign key to the corresponding text observation';
+
+
+--
+-- Name: COLUMN result_text_specimen.specimen_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_text_specimen.specimen_id IS 'Foreign key to the corresponding Specimen instance';
+
+
+--
+-- Name: COLUMN result_text_specimen.value; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.result_text_specimen.value IS 'The free text result value';
+
+
+--
+-- Name: etl_insert_result_text_specimen(integer, text, text); Type: FUNCTION; Schema: core; Owner: -
+--
+
+CREATE FUNCTION core.etl_insert_result_text_specimen(specimen_id integer, property_uri text, value text) RETURNS core.result_text_specimen
+    LANGUAGE sql
+    AS $$
+    INSERT INTO core.result_text_specimen (observation_text_specimen_id, specimen_id, value)
+    SELECT o.observation_text_specimen_id,
+           etl_insert_result_text_specimen.specimen_id,
+           etl_insert_result_text_specimen.value
+    FROM core.observation_text_specimen o
+    INNER JOIN core.property_text p ON o.property_text_id = p.property_text_id
+    WHERE p.uri ILIKE '%' || etl_insert_result_text_specimen.property_uri
+    ON CONFLICT DO NOTHING RETURNING *;
+$$;
+
+
+--
+-- Name: FUNCTION etl_insert_result_text_specimen(specimen_id integer, property_uri text, value text); Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON FUNCTION core.etl_insert_result_text_specimen(specimen_id integer, property_uri text, value text) IS 'Inserts a free text result for a specimen. Looks up the observation by property URI.
+Returns the inserted record or nothing if it already exists.';
 
 
 --
@@ -1563,6 +2017,242 @@ ALTER SEQUENCE core.observation_phys_chem_observation_phys_chem_id_seq OWNED BY 
 
 
 --
+-- Name: observation_phys_chem_plot; Type: TABLE; Schema: core; Owner: -
+--
+
+CREATE TABLE core.observation_phys_chem_plot (
+    observation_phys_chem_plot_id integer CONSTRAINT observation_phys_chem_plot_observation_phys_chem_plot__not_null NOT NULL,
+    property_phys_chem_id integer NOT NULL,
+    procedure_phys_chem_id integer NOT NULL,
+    unit_of_measure_id integer NOT NULL,
+    value_min numeric,
+    value_max numeric
+);
+
+
+--
+-- Name: TABLE observation_phys_chem_plot; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TABLE core.observation_phys_chem_plot IS 'Physio-chemical observations for the Plot feature of interest';
+
+
+--
+-- Name: COLUMN observation_phys_chem_plot.observation_phys_chem_plot_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.observation_phys_chem_plot.observation_phys_chem_plot_id IS 'Synthetic primary key for the observation';
+
+
+--
+-- Name: COLUMN observation_phys_chem_plot.property_phys_chem_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.observation_phys_chem_plot.property_phys_chem_id IS 'Foreign key to the corresponding property';
+
+
+--
+-- Name: COLUMN observation_phys_chem_plot.procedure_phys_chem_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.observation_phys_chem_plot.procedure_phys_chem_id IS 'Foreign key to the corresponding procedure';
+
+
+--
+-- Name: COLUMN observation_phys_chem_plot.unit_of_measure_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.observation_phys_chem_plot.unit_of_measure_id IS 'Foreign key to the corresponding unit of measure (if applicable)';
+
+
+--
+-- Name: COLUMN observation_phys_chem_plot.value_min; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.observation_phys_chem_plot.value_min IS 'Minimum admissable value for this combination of property, procedure and unit of measure';
+
+
+--
+-- Name: COLUMN observation_phys_chem_plot.value_max; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.observation_phys_chem_plot.value_max IS 'Maximum admissable value for this combination of property, procedure and unit of measure';
+
+
+--
+-- Name: observation_phys_chem_plot_observation_phys_chem_plot_id_seq; Type: SEQUENCE; Schema: core; Owner: -
+--
+
+CREATE SEQUENCE core.observation_phys_chem_plot_observation_phys_chem_plot_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: observation_phys_chem_plot_observation_phys_chem_plot_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: -
+--
+
+ALTER SEQUENCE core.observation_phys_chem_plot_observation_phys_chem_plot_id_seq OWNED BY core.observation_phys_chem_plot.observation_phys_chem_plot_id;
+
+
+--
+-- Name: observation_text_element; Type: TABLE; Schema: core; Owner: -
+--
+
+CREATE TABLE core.observation_text_element (
+    observation_text_element_id integer NOT NULL,
+    property_text_id integer NOT NULL
+);
+
+
+--
+-- Name: TABLE observation_text_element; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TABLE core.observation_text_element IS 'Text observation definitions for the Element feature of interest. Links a text property.';
+
+
+--
+-- Name: COLUMN observation_text_element.observation_text_element_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.observation_text_element.observation_text_element_id IS 'Synthetic primary key';
+
+
+--
+-- Name: COLUMN observation_text_element.property_text_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.observation_text_element.property_text_id IS 'Foreign key to the corresponding text property';
+
+
+--
+-- Name: observation_text_element_observation_text_element_id_seq; Type: SEQUENCE; Schema: core; Owner: -
+--
+
+CREATE SEQUENCE core.observation_text_element_observation_text_element_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: observation_text_element_observation_text_element_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: -
+--
+
+ALTER SEQUENCE core.observation_text_element_observation_text_element_id_seq OWNED BY core.observation_text_element.observation_text_element_id;
+
+
+--
+-- Name: observation_text_plot; Type: TABLE; Schema: core; Owner: -
+--
+
+CREATE TABLE core.observation_text_plot (
+    observation_text_plot_id integer NOT NULL,
+    property_text_id integer NOT NULL
+);
+
+
+--
+-- Name: TABLE observation_text_plot; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TABLE core.observation_text_plot IS 'Text observation definitions for the Plot feature of interest. Links a text property.';
+
+
+--
+-- Name: COLUMN observation_text_plot.observation_text_plot_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.observation_text_plot.observation_text_plot_id IS 'Synthetic primary key';
+
+
+--
+-- Name: COLUMN observation_text_plot.property_text_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.observation_text_plot.property_text_id IS 'Foreign key to the corresponding text property';
+
+
+--
+-- Name: observation_text_plot_observation_text_plot_id_seq; Type: SEQUENCE; Schema: core; Owner: -
+--
+
+CREATE SEQUENCE core.observation_text_plot_observation_text_plot_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: observation_text_plot_observation_text_plot_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: -
+--
+
+ALTER SEQUENCE core.observation_text_plot_observation_text_plot_id_seq OWNED BY core.observation_text_plot.observation_text_plot_id;
+
+
+--
+-- Name: observation_text_specimen; Type: TABLE; Schema: core; Owner: -
+--
+
+CREATE TABLE core.observation_text_specimen (
+    observation_text_specimen_id integer NOT NULL,
+    property_text_id integer NOT NULL
+);
+
+
+--
+-- Name: TABLE observation_text_specimen; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TABLE core.observation_text_specimen IS 'Text observation definitions for the Specimen feature of interest. Links a text property.';
+
+
+--
+-- Name: COLUMN observation_text_specimen.observation_text_specimen_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.observation_text_specimen.observation_text_specimen_id IS 'Synthetic primary key';
+
+
+--
+-- Name: COLUMN observation_text_specimen.property_text_id; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.observation_text_specimen.property_text_id IS 'Foreign key to the corresponding text property';
+
+
+--
+-- Name: observation_text_specimen_observation_text_specimen_id_seq; Type: SEQUENCE; Schema: core; Owner: -
+--
+
+CREATE SEQUENCE core.observation_text_specimen_observation_text_specimen_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: observation_text_specimen_observation_text_specimen_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: -
+--
+
+ALTER SEQUENCE core.observation_text_specimen_observation_text_specimen_id_seq OWNED BY core.observation_text_specimen.observation_text_specimen_id;
+
+
+--
 -- Name: plot_plot_id_seq; Type: SEQUENCE; Schema: core; Owner: -
 --
 
@@ -1883,7 +2573,7 @@ COMMENT ON COLUMN core.property_desc_element.label IS 'Short label for this prop
 -- Name: COLUMN property_desc_element.uri; Type: COMMENT; Schema: core; Owner: -
 --
 
-COMMENT ON COLUMN core.property_desc_element.uri IS 'URI to the corresponding code in a controled vocabulary (e.g. GloSIS). Follow this URI for the full definition and semantics of this property';
+COMMENT ON COLUMN core.property_desc_element.uri IS 'URI reference to a corresponding code in a controlled vocabulary (e.g., GloSIS). Follow this URI for the full definition and semantics of this property.';
 
 
 --
@@ -2019,7 +2709,7 @@ ALTER TABLE core.property_desc_profile ALTER COLUMN property_desc_profile_id ADD
 
 CREATE TABLE core.property_desc_specimen (
     label character varying NOT NULL,
-    definition character varying NOT NULL,
+    uri character varying CONSTRAINT property_desc_specimen_definition_not_null NOT NULL,
     property_desc_specimen_id integer CONSTRAINT property_desc_specimen_property_desc_specimen_id_not_null1 NOT NULL
 );
 
@@ -2039,10 +2729,10 @@ COMMENT ON COLUMN core.property_desc_specimen.label IS 'Short label for this pro
 
 
 --
--- Name: COLUMN property_desc_specimen.definition; Type: COMMENT; Schema: core; Owner: -
+-- Name: COLUMN property_desc_specimen.uri; Type: COMMENT; Schema: core; Owner: -
 --
 
-COMMENT ON COLUMN core.property_desc_specimen.definition IS 'Full semantic definition of this property, can be a URI to the corresponding code in a controled vocabulary (e.g. GloSIS).';
+COMMENT ON COLUMN core.property_desc_specimen.uri IS 'URI reference to a corresponding code in a controlled vocabulary (e.g., GloSIS). Follow this URI for the full definition and semantics of this property.';
 
 
 --
@@ -2173,28 +2863,62 @@ ALTER TABLE core.property_phys_chem ALTER COLUMN property_phys_chem_id ADD GENER
 
 
 --
--- Name: result_desc_element; Type: TABLE; Schema: core; Owner: -
+-- Name: property_text; Type: TABLE; Schema: core; Owner: -
 --
 
-CREATE TABLE core.result_desc_element (
-    element_id integer NOT NULL,
-    property_desc_element_id integer NOT NULL,
-    thesaurus_desc_element_id integer NOT NULL
+CREATE TABLE core.property_text (
+    property_text_id integer NOT NULL,
+    label character varying NOT NULL,
+    uri character varying
 );
 
 
 --
--- Name: TABLE result_desc_element; Type: COMMENT; Schema: core; Owner: -
+-- Name: TABLE property_text; Type: COMMENT; Schema: core; Owner: -
 --
 
-COMMENT ON TABLE core.result_desc_element IS 'Descriptive results for the Element feature interest.';
+COMMENT ON TABLE core.property_text IS 'A property whose observations produce free text results (as opposed to controlled vocabulary values). Used for narrative descriptions, notes, or other text content.';
 
 
 --
--- Name: COLUMN result_desc_element.element_id; Type: COMMENT; Schema: core; Owner: -
+-- Name: COLUMN property_text.property_text_id; Type: COMMENT; Schema: core; Owner: -
 --
 
-COMMENT ON COLUMN core.result_desc_element.element_id IS 'Foreign key to the corresponding Element feature of interest.';
+COMMENT ON COLUMN core.property_text.property_text_id IS 'Synthetic primary key';
+
+
+--
+-- Name: COLUMN property_text.label; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.property_text.label IS 'Short label for this property';
+
+
+--
+-- Name: COLUMN property_text.uri; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON COLUMN core.property_text.uri IS 'Optional URI to a corresponding code in a controlled vocabulary (e.g., GloSIS). Follow this URI for the full definition and semantics of this property.';
+
+
+--
+-- Name: property_text_property_text_id_seq; Type: SEQUENCE; Schema: core; Owner: -
+--
+
+CREATE SEQUENCE core.property_text_property_text_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: property_text_property_text_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: -
+--
+
+ALTER SEQUENCE core.property_text_property_text_id_seq OWNED BY core.property_text.property_text_id;
 
 
 --
@@ -2220,45 +2944,6 @@ COMMENT ON TABLE core.result_desc_profile IS 'Descriptive results for the Profil
 --
 
 COMMENT ON COLUMN core.result_desc_profile.profile_id IS 'Foreign key to the corresponding Profile feature of interest.';
-
-
---
--- Name: result_desc_specimen; Type: TABLE; Schema: core; Owner: -
---
-
-CREATE TABLE core.result_desc_specimen (
-    specimen_id integer NOT NULL,
-    property_desc_specimen_id integer NOT NULL,
-    thesaurus_desc_specimen_id integer NOT NULL
-);
-
-
---
--- Name: TABLE result_desc_specimen; Type: COMMENT; Schema: core; Owner: -
---
-
-COMMENT ON TABLE core.result_desc_specimen IS 'Descriptive results for the Specimen feature interest.';
-
-
---
--- Name: COLUMN result_desc_specimen.specimen_id; Type: COMMENT; Schema: core; Owner: -
---
-
-COMMENT ON COLUMN core.result_desc_specimen.specimen_id IS 'Foreign key to the corresponding Specimen feature of interest.';
-
-
---
--- Name: COLUMN result_desc_specimen.property_desc_specimen_id; Type: COMMENT; Schema: core; Owner: -
---
-
-COMMENT ON COLUMN core.result_desc_specimen.property_desc_specimen_id IS 'Partial foreign key to the corresponding Observation.';
-
-
---
--- Name: COLUMN result_desc_specimen.thesaurus_desc_specimen_id; Type: COMMENT; Schema: core; Owner: -
---
-
-COMMENT ON COLUMN core.result_desc_specimen.thesaurus_desc_specimen_id IS 'Partial foreign key to the corresponding Observation.';
 
 
 --
@@ -2355,6 +3040,26 @@ COMMENT ON COLUMN core.result_phys_chem_element.value IS 'Numerical value result
 
 
 --
+-- Name: result_phys_chem_plot_result_phys_chem_plot_id_seq; Type: SEQUENCE; Schema: core; Owner: -
+--
+
+CREATE SEQUENCE core.result_phys_chem_plot_result_phys_chem_plot_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: result_phys_chem_plot_result_phys_chem_plot_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: -
+--
+
+ALTER SEQUENCE core.result_phys_chem_plot_result_phys_chem_plot_id_seq OWNED BY core.result_phys_chem_plot.result_phys_chem_plot_id;
+
+
+--
 -- Name: result_phys_chem_result_phys_chem_id_seq; Type: SEQUENCE; Schema: core; Owner: -
 --
 
@@ -2372,6 +3077,66 @@ CREATE SEQUENCE core.result_phys_chem_result_phys_chem_id_seq
 --
 
 ALTER SEQUENCE core.result_phys_chem_result_phys_chem_id_seq OWNED BY core.result_phys_chem_element.result_phys_chem_element_id;
+
+
+--
+-- Name: result_text_element_result_text_element_id_seq; Type: SEQUENCE; Schema: core; Owner: -
+--
+
+CREATE SEQUENCE core.result_text_element_result_text_element_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: result_text_element_result_text_element_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: -
+--
+
+ALTER SEQUENCE core.result_text_element_result_text_element_id_seq OWNED BY core.result_text_element.result_text_element_id;
+
+
+--
+-- Name: result_text_plot_result_text_plot_id_seq; Type: SEQUENCE; Schema: core; Owner: -
+--
+
+CREATE SEQUENCE core.result_text_plot_result_text_plot_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: result_text_plot_result_text_plot_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: -
+--
+
+ALTER SEQUENCE core.result_text_plot_result_text_plot_id_seq OWNED BY core.result_text_plot.result_text_plot_id;
+
+
+--
+-- Name: result_text_specimen_result_text_specimen_id_seq; Type: SEQUENCE; Schema: core; Owner: -
+--
+
+CREATE SEQUENCE core.result_text_specimen_result_text_specimen_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: result_text_specimen_result_text_specimen_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: -
+--
+
+ALTER SEQUENCE core.result_text_specimen_result_text_specimen_id_seq OWNED BY core.result_text_specimen.result_text_specimen_id;
 
 
 --
@@ -3084,10 +3849,45 @@ ALTER TABLE ONLY core.observation_phys_chem_element ALTER COLUMN observation_phy
 
 
 --
+-- Name: observation_phys_chem_plot observation_phys_chem_plot_id; Type: DEFAULT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_phys_chem_plot ALTER COLUMN observation_phys_chem_plot_id SET DEFAULT nextval('core.observation_phys_chem_plot_observation_phys_chem_plot_id_seq'::regclass);
+
+
+--
 -- Name: observation_phys_chem_specimen observation_phys_chem_specimen_id; Type: DEFAULT; Schema: core; Owner: -
 --
 
 ALTER TABLE ONLY core.observation_phys_chem_specimen ALTER COLUMN observation_phys_chem_specimen_id SET DEFAULT nextval('core.observation_numerical_specime_observation_numerical_specime_seq'::regclass);
+
+
+--
+-- Name: observation_text_element observation_text_element_id; Type: DEFAULT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_text_element ALTER COLUMN observation_text_element_id SET DEFAULT nextval('core.observation_text_element_observation_text_element_id_seq'::regclass);
+
+
+--
+-- Name: observation_text_plot observation_text_plot_id; Type: DEFAULT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_text_plot ALTER COLUMN observation_text_plot_id SET DEFAULT nextval('core.observation_text_plot_observation_text_plot_id_seq'::regclass);
+
+
+--
+-- Name: observation_text_specimen observation_text_specimen_id; Type: DEFAULT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_text_specimen ALTER COLUMN observation_text_specimen_id SET DEFAULT nextval('core.observation_text_specimen_observation_text_specimen_id_seq'::regclass);
+
+
+--
+-- Name: property_text property_text_id; Type: DEFAULT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.property_text ALTER COLUMN property_text_id SET DEFAULT nextval('core.property_text_property_text_id_seq'::regclass);
 
 
 --
@@ -3098,10 +3898,38 @@ ALTER TABLE ONLY core.result_phys_chem_element ALTER COLUMN result_phys_chem_ele
 
 
 --
+-- Name: result_phys_chem_plot result_phys_chem_plot_id; Type: DEFAULT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_phys_chem_plot ALTER COLUMN result_phys_chem_plot_id SET DEFAULT nextval('core.result_phys_chem_plot_result_phys_chem_plot_id_seq'::regclass);
+
+
+--
 -- Name: result_phys_chem_specimen result_phys_chem_specimen_id; Type: DEFAULT; Schema: core; Owner: -
 --
 
 ALTER TABLE ONLY core.result_phys_chem_specimen ALTER COLUMN result_phys_chem_specimen_id SET DEFAULT nextval('core.result_numerical_specimen_result_numerical_specimen_id_seq'::regclass);
+
+
+--
+-- Name: result_text_element result_text_element_id; Type: DEFAULT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_element ALTER COLUMN result_text_element_id SET DEFAULT nextval('core.result_text_element_result_text_element_id_seq'::regclass);
+
+
+--
+-- Name: result_text_plot result_text_plot_id; Type: DEFAULT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_plot ALTER COLUMN result_text_plot_id SET DEFAULT nextval('core.result_text_plot_result_text_plot_id_seq'::regclass);
+
+
+--
+-- Name: result_text_specimen result_text_specimen_id; Type: DEFAULT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_specimen ALTER COLUMN result_text_specimen_id SET DEFAULT nextval('core.result_text_specimen_result_text_specimen_id_seq'::regclass);
 
 
 --
@@ -3201,6 +4029,22 @@ ALTER TABLE ONLY core.observation_phys_chem_element
 
 
 --
+-- Name: observation_phys_chem_plot observation_phys_chem_plot_pkey; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_phys_chem_plot
+    ADD CONSTRAINT observation_phys_chem_plot_pkey PRIMARY KEY (observation_phys_chem_plot_id);
+
+
+--
+-- Name: observation_phys_chem_plot observation_phys_chem_plot_property_procedure_unq; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_phys_chem_plot
+    ADD CONSTRAINT observation_phys_chem_plot_property_procedure_unq UNIQUE (property_phys_chem_id, procedure_phys_chem_id);
+
+
+--
 -- Name: observation_phys_chem_element observation_phys_chem_property_phys_chem_id_procedure_phys__key; Type: CONSTRAINT; Schema: core; Owner: -
 --
 
@@ -3214,6 +4058,30 @@ ALTER TABLE ONLY core.observation_phys_chem_element
 
 ALTER TABLE ONLY core.observation_phys_chem_specimen
     ADD CONSTRAINT observation_phys_chem_specimen_property_phys_chem_id_procedure_ UNIQUE (property_phys_chem_id, procedure_phys_chem_id);
+
+
+--
+-- Name: observation_text_element observation_text_element_pkey; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_text_element
+    ADD CONSTRAINT observation_text_element_pkey PRIMARY KEY (observation_text_element_id);
+
+
+--
+-- Name: observation_text_plot observation_text_plot_pkey; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_text_plot
+    ADD CONSTRAINT observation_text_plot_pkey PRIMARY KEY (observation_text_plot_id);
+
+
+--
+-- Name: observation_text_specimen observation_text_specimen_pkey; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_text_specimen
+    ADD CONSTRAINT observation_text_specimen_pkey PRIMARY KEY (observation_text_specimen_id);
 
 
 --
@@ -3345,6 +4213,14 @@ ALTER TABLE ONLY core.property_phys_chem
 
 
 --
+-- Name: property_text property_text_pkey; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.property_text
+    ADD CONSTRAINT property_text_pkey PRIMARY KEY (property_text_id);
+
+
+--
 -- Name: result_desc_specimen result_desc_specimen_specimen_id_property_desc_specimen_id_key; Type: CONSTRAINT; Schema: core; Owner: -
 --
 
@@ -3385,6 +4261,30 @@ ALTER TABLE ONLY core.result_phys_chem_element
 
 
 --
+-- Name: result_phys_chem_plot result_phys_chem_plot_pkey; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_phys_chem_plot
+    ADD CONSTRAINT result_phys_chem_plot_pkey PRIMARY KEY (result_phys_chem_plot_id);
+
+
+--
+-- Name: result_phys_chem_plot result_phys_chem_plot_unq; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_phys_chem_plot
+    ADD CONSTRAINT result_phys_chem_plot_unq UNIQUE (observation_phys_chem_plot_id, plot_id);
+
+
+--
+-- Name: result_phys_chem_plot result_phys_chem_plot_unq_foi_obs; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_phys_chem_plot
+    ADD CONSTRAINT result_phys_chem_plot_unq_foi_obs UNIQUE (plot_id, observation_phys_chem_plot_id);
+
+
+--
 -- Name: result_phys_chem_element result_phys_chem_unq; Type: CONSTRAINT; Schema: core; Owner: -
 --
 
@@ -3398,6 +4298,30 @@ ALTER TABLE ONLY core.result_phys_chem_element
 
 ALTER TABLE ONLY core.result_phys_chem_element
     ADD CONSTRAINT result_phys_chem_unq_foi_obs UNIQUE (element_id, observation_phys_chem_element_id);
+
+
+--
+-- Name: result_text_element result_text_element_pkey; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_element
+    ADD CONSTRAINT result_text_element_pkey PRIMARY KEY (result_text_element_id);
+
+
+--
+-- Name: result_text_plot result_text_plot_pkey; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_plot
+    ADD CONSTRAINT result_text_plot_pkey PRIMARY KEY (result_text_plot_id);
+
+
+--
+-- Name: result_text_specimen result_text_specimen_pkey; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_specimen
+    ADD CONSTRAINT result_text_specimen_pkey PRIMARY KEY (result_text_specimen_id);
 
 
 --
@@ -3545,6 +4469,30 @@ ALTER TABLE ONLY core.element
 
 
 --
+-- Name: observation_text_element unq_observation_text_element_property; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_text_element
+    ADD CONSTRAINT unq_observation_text_element_property UNIQUE (property_text_id);
+
+
+--
+-- Name: observation_text_plot unq_observation_text_plot_property; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_text_plot
+    ADD CONSTRAINT unq_observation_text_plot_property UNIQUE (property_text_id);
+
+
+--
+-- Name: observation_text_specimen unq_observation_text_specimen_property; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_text_specimen
+    ADD CONSTRAINT unq_observation_text_specimen_property UNIQUE (property_text_id);
+
+
+--
 -- Name: plot unq_plot_code; Type: CONSTRAINT; Schema: core; Owner: -
 --
 
@@ -3681,6 +4629,22 @@ ALTER TABLE ONLY core.property_phys_chem
 
 
 --
+-- Name: property_text unq_property_text_label; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.property_text
+    ADD CONSTRAINT unq_property_text_label UNIQUE (label);
+
+
+--
+-- Name: property_text unq_property_text_uri; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.property_text
+    ADD CONSTRAINT unq_property_text_uri UNIQUE (uri);
+
+
+--
 -- Name: result_desc_element unq_result_desc_element; Type: CONSTRAINT; Schema: core; Owner: -
 --
 
@@ -3710,6 +4674,30 @@ ALTER TABLE ONLY core.result_desc_profile
 
 ALTER TABLE ONLY core.result_desc_surface
     ADD CONSTRAINT unq_result_desc_surface UNIQUE (surface_id, property_desc_surface_id);
+
+
+--
+-- Name: result_text_element unq_result_text_element; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_element
+    ADD CONSTRAINT unq_result_text_element UNIQUE (observation_text_element_id, element_id);
+
+
+--
+-- Name: result_text_plot unq_result_text_plot; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_plot
+    ADD CONSTRAINT unq_result_text_plot UNIQUE (observation_text_plot_id, plot_id);
+
+
+--
+-- Name: result_text_specimen unq_result_text_specimen; Type: CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_specimen
+    ADD CONSTRAINT unq_result_text_specimen UNIQUE (observation_text_specimen_id, specimen_id);
 
 
 --
@@ -3878,6 +4866,20 @@ COMMENT ON TRIGGER trg_check_result_value ON core.result_phys_chem_element IS 'V
 
 
 --
+-- Name: result_phys_chem_plot trg_check_result_value_plot; Type: TRIGGER; Schema: core; Owner: -
+--
+
+CREATE TRIGGER trg_check_result_value_plot BEFORE INSERT OR UPDATE ON core.result_phys_chem_plot FOR EACH ROW EXECUTE FUNCTION core.check_result_value_plot();
+
+
+--
+-- Name: TRIGGER trg_check_result_value_plot ON result_phys_chem_plot; Type: COMMENT; Schema: core; Owner: -
+--
+
+COMMENT ON TRIGGER trg_check_result_value_plot ON core.result_phys_chem_plot IS 'Verifies if the value assigned to the result is valid. See the function core.check_result_value_plot function for implementation.';
+
+
+--
 -- Name: result_phys_chem_specimen trg_check_result_value_specimen; Type: TRIGGER; Schema: core; Owner: -
 --
 
@@ -3912,6 +4914,14 @@ ALTER TABLE ONLY core.result_desc_element
 --
 
 ALTER TABLE ONLY core.result_phys_chem_element
+    ADD CONSTRAINT fk_element FOREIGN KEY (element_id) REFERENCES core.element(element_id) ON DELETE CASCADE;
+
+
+--
+-- Name: result_text_element fk_element; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_element
     ADD CONSTRAINT fk_element FOREIGN KEY (element_id) REFERENCES core.element(element_id) ON DELETE CASCADE;
 
 
@@ -3956,10 +4966,50 @@ ALTER TABLE ONLY core.result_phys_chem_element
 
 
 --
+-- Name: result_phys_chem_plot fk_observation_phys_chem_plot; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_phys_chem_plot
+    ADD CONSTRAINT fk_observation_phys_chem_plot FOREIGN KEY (observation_phys_chem_plot_id) REFERENCES core.observation_phys_chem_plot(observation_phys_chem_plot_id);
+
+
+--
+-- Name: result_text_element fk_observation_text_element; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_element
+    ADD CONSTRAINT fk_observation_text_element FOREIGN KEY (observation_text_element_id) REFERENCES core.observation_text_element(observation_text_element_id);
+
+
+--
+-- Name: result_text_plot fk_observation_text_plot; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_plot
+    ADD CONSTRAINT fk_observation_text_plot FOREIGN KEY (observation_text_plot_id) REFERENCES core.observation_text_plot(observation_text_plot_id);
+
+
+--
+-- Name: result_text_specimen fk_observation_text_specimen; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_specimen
+    ADD CONSTRAINT fk_observation_text_specimen FOREIGN KEY (observation_text_specimen_id) REFERENCES core.observation_text_specimen(observation_text_specimen_id);
+
+
+--
 -- Name: project_organisation fk_organisation; Type: FK CONSTRAINT; Schema: core; Owner: -
 --
 
 ALTER TABLE ONLY core.project_organisation
+    ADD CONSTRAINT fk_organisation FOREIGN KEY (organisation_id) REFERENCES metadata.organisation(organisation_id);
+
+
+--
+-- Name: result_phys_chem_plot fk_organisation; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_phys_chem_plot
     ADD CONSTRAINT fk_organisation FOREIGN KEY (organisation_id) REFERENCES metadata.organisation(organisation_id);
 
 
@@ -4000,6 +5050,22 @@ ALTER TABLE ONLY core.profile
 --
 
 ALTER TABLE ONLY core.result_desc_plot
+    ADD CONSTRAINT fk_plot FOREIGN KEY (plot_id) REFERENCES core.plot(plot_id) ON DELETE CASCADE;
+
+
+--
+-- Name: result_phys_chem_plot fk_plot; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_phys_chem_plot
+    ADD CONSTRAINT fk_plot FOREIGN KEY (plot_id) REFERENCES core.plot(plot_id) ON DELETE CASCADE;
+
+
+--
+-- Name: result_text_plot fk_plot; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_plot
     ADD CONSTRAINT fk_plot FOREIGN KEY (plot_id) REFERENCES core.plot(plot_id) ON DELETE CASCADE;
 
 
@@ -4056,6 +5122,14 @@ ALTER TABLE ONLY core.observation_desc_surface
 --
 
 ALTER TABLE ONLY core.observation_phys_chem_element
+    ADD CONSTRAINT fk_procedure_phys_chem FOREIGN KEY (procedure_phys_chem_id) REFERENCES core.procedure_phys_chem(procedure_phys_chem_id);
+
+
+--
+-- Name: observation_phys_chem_plot fk_procedure_phys_chem; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_phys_chem_plot
     ADD CONSTRAINT fk_procedure_phys_chem FOREIGN KEY (procedure_phys_chem_id) REFERENCES core.procedure_phys_chem(procedure_phys_chem_id);
 
 
@@ -4172,11 +5246,43 @@ ALTER TABLE ONLY core.observation_phys_chem_element
 
 
 --
+-- Name: observation_phys_chem_plot fk_property_phys_chem; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_phys_chem_plot
+    ADD CONSTRAINT fk_property_phys_chem FOREIGN KEY (property_phys_chem_id) REFERENCES core.property_phys_chem(property_phys_chem_id);
+
+
+--
 -- Name: observation_phys_chem_specimen fk_property_phys_chem; Type: FK CONSTRAINT; Schema: core; Owner: -
 --
 
 ALTER TABLE ONLY core.observation_phys_chem_specimen
     ADD CONSTRAINT fk_property_phys_chem FOREIGN KEY (property_phys_chem_id) REFERENCES core.property_phys_chem(property_phys_chem_id);
+
+
+--
+-- Name: observation_text_element fk_property_text; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_text_element
+    ADD CONSTRAINT fk_property_text FOREIGN KEY (property_text_id) REFERENCES core.property_text(property_text_id);
+
+
+--
+-- Name: observation_text_plot fk_property_text; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_text_plot
+    ADD CONSTRAINT fk_property_text FOREIGN KEY (property_text_id) REFERENCES core.property_text(property_text_id);
+
+
+--
+-- Name: observation_text_specimen fk_property_text; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_text_specimen
+    ADD CONSTRAINT fk_property_text FOREIGN KEY (property_text_id) REFERENCES core.property_text(property_text_id);
 
 
 --
@@ -4216,6 +5322,14 @@ ALTER TABLE ONLY core.result_desc_specimen
 --
 
 ALTER TABLE ONLY core.result_phys_chem_specimen
+    ADD CONSTRAINT fk_specimen FOREIGN KEY (specimen_id) REFERENCES core.specimen(specimen_id) ON DELETE CASCADE;
+
+
+--
+-- Name: result_text_specimen fk_specimen; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.result_text_specimen
     ADD CONSTRAINT fk_specimen FOREIGN KEY (specimen_id) REFERENCES core.specimen(specimen_id) ON DELETE CASCADE;
 
 
@@ -4320,6 +5434,14 @@ ALTER TABLE ONLY core.observation_desc_surface
 --
 
 ALTER TABLE ONLY core.observation_phys_chem_element
+    ADD CONSTRAINT fk_unit_of_measure FOREIGN KEY (unit_of_measure_id) REFERENCES core.unit_of_measure(unit_of_measure_id);
+
+
+--
+-- Name: observation_phys_chem_plot fk_unit_of_measure; Type: FK CONSTRAINT; Schema: core; Owner: -
+--
+
+ALTER TABLE ONLY core.observation_phys_chem_plot
     ADD CONSTRAINT fk_unit_of_measure FOREIGN KEY (unit_of_measure_id) REFERENCES core.unit_of_measure(unit_of_measure_id);
 
 
@@ -4431,5 +5553,5 @@ ALTER TABLE ONLY metadata.organisation
 -- PostgreSQL database dump complete
 --
 
-\unrestrict g9vCvDshvjIcmfc618qjlIkZ5aKQ18MdhA6BRb2jEt9KvD7HBFdYuIgapiyCJBM
+\unrestrict yfdvCvTm2sDJQkSqhelSClvHEUQDRtDa8fcMzt9NzPxRhdmVuWAJU4FUjknKVJG
 
