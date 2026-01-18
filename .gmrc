@@ -95,7 +95,7 @@
     {
       "_": "command",
       "shadow": false,
-      "command": "if [[ \"$GM_DBURL\" == *localhost* ]]; then pg_dump --schema-only --no-owner --exclude-schema=graphile_migrate --file=migrations/complete-final-schema.sql \"$GM_DBURL\"; else echo 'Skipping pg_dump: Not running on localhost'; fi"
+      "command": "if [[ \"$GM_DBURL\" == *localhost* ]]; then pg_dump --schema-only --no-owner --exclude-schema=graphile_migrate \"$GM_DBURL\" | sed '/^\\\\restrict/d' > migrations/complete-final-schema.sql; else echo 'Skipping pg_dump: Not running on localhost'; fi"
     }
   ],
 
