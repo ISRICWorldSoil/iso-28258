@@ -517,9 +517,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphile-migrate@npm:^1.3.0":
-  version: 1.3.0
-  resolution: "graphile-migrate@npm:1.3.0"
+"graphile-migrate@npm:^1.4.0":
+  version: 1.4.1
+  resolution: "graphile-migrate@npm:1.4.1"
   dependencies:
     "@graphile/logger": "npm:^0.2.0"
     "@types/json5": "npm:^0.0.30"
@@ -535,7 +535,7 @@ __metadata:
     yargs: "npm:^15.3.1"
   bin:
     graphile-migrate: dist/cli.js
-  checksum: 10/357d1e2013ac84399debf1a9cd794515710969783ae48238c1d56c443c29c88068b3103eb06ba1782767ab39541d0d319354bf1cb31cc2066493dffb65fa30b1
+  checksum: 10/7ebc0e4fddbbd14760e9c7fd730589a1f843161697a4314f396fac4bf8216c4f171e09200f3181f1db57c99c801688b9a757a41be9c358f8c75429582622f74a
   languageName: node
   linkType: hard
 
@@ -1379,7 +1379,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "wosis@workspace:."
   dependencies:
-    graphile-migrate: "npm:^1.3.0"
+    graphile-migrate: "npm:^1.4.0"
   languageName: unknown
   linkType: soft
 

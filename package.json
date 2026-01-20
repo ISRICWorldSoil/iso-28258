@@ -1,19 +1,19 @@
 {
-  "name": "wosis",
+  "name": "iso-28258",
   "packageManager": "yarn@4.3.1",
   "version": "1.0.0",
-  "description": "iso25258 ISRIC implementation",
+  "description": "ISO 28258:2013 international standard implementation as a PostgreSQL database",
   "repository": {
     "type": "git",
-    "url": "ssh://git@git.wur.nl:isric/databases/wosis.git"
+    "url": "https://github.com/ISRICWorldSoil/iso-28258.git"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "author": "Luis Calisto <luis.calisto@isric.org>",
   "scripts": {
     "gm": "yarn run graphile-migrate",
     "make-release": "sh -c 'pg_dump iso28258 --inserts --no-owner --no-security-labels -n core -n metadata | sed -e \"/^-- Dumped by pg_dump/d\" -e \"/^..*restrict/d\" > releases/$1' --"
   },
   "dependencies": {
-    "graphile-migrate": "^1.3.0"
+    "graphile-migrate": "^1.4.0"
   }
 }
