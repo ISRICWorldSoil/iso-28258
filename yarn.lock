@@ -697,6 +697,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"iso-28258@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "iso-28258@workspace:."
+  dependencies:
+    graphile-migrate: "npm:^1.4.0"
+  languageName: unknown
+  linkType: soft
+
 "json5@npm:^2.1.2":
   version: 2.2.1
   resolution: "json5@npm:2.2.1"
@@ -1374,14 +1382,6 @@ __metadata:
   checksum: 10/d5f8027b9a8255a493a94e4ec1b74a27bff6679d5ffe29316a3215e4712945c84ef73ca4045c7e20ae7d0c72f5f57f296e04a4928e773d4276a2f1222e4c2e99
   languageName: node
   linkType: hard
-
-"wosis@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "wosis@workspace:."
-  dependencies:
-    graphile-migrate: "npm:^1.4.0"
-  languageName: unknown
-  linkType: soft
 
 "wrap-ansi@npm:^6.2.0":
   version: 6.2.0
