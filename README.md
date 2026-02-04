@@ -304,7 +304,36 @@ Please read [migrations.md](migrations.md) for detailed information about the mi
 To create a new release (schema dump for downstream databases):
 
 ```bash
-yarn make-release iso28258_v1.7.sql
+yarn make-release iso28258_v1.9.sql
 ```
 
 This runs `pg_dump` with `--inserts` (data as INSERT statements), `--no-owner`, and exports the `core` and `metadata` schemas to the `releases/` folder.
+
+## Using Release Files (Downstream Projects)
+
+Release files contain only the `core` and `metadata` schemas. PostgreSQL extensions must be created separately before applying the schema.
+
+**Manual setup:**
+
+```bash
+psql -d your_db -f migrations/setup/extensions.sql
+psql -d your_db -f releases/iso28258_v1.9.sql
+```
+
+**Using graphile-migrate (.gmrc):**
+
+```json
+"afterReset": [
+  "setup/extensions.sql",
+  "setup/iso28258_v1.9.sql"
+]
+```
+
+## Bridge Functions (v1.9+)
+
+The schema includes bridge functions that create materialized views for simplified data export:
+
+```sql
+-- Create export views
+SELECT core.bridge_process_all(NULL, 'specimen', NULL);
+```
