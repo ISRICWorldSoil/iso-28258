@@ -14,6 +14,15 @@
     "make-release": "sh -c 'pg_dump iso28258 --inserts --no-owner --no-security-labels --no-table-access-method --no-tablespaces -n core -n metadata | sed -e \"/^-- Dumped by pg_dump/d\" -e \"/^..*restrict/d\" -e \"/^SET check_function_bodies/!{/^SET /d;}\" -e \"/^SELECT pg_catalog.set_config/d\" > releases/$1' --"
   },
   "dependencies": {
-    "graphile-migrate": "^1.4.0"
+    "graphile-migrate": "^1.4.1"
+  },
+  "resolutions": {
+    "tar": "^7.5.7",
+    "brace-expansion": "^2.0.2",
+    "braces": "^3.0.3",
+    "ip": "^1.1.9",
+    "semver": "^7.5.2",
+    "http-cache-semantics": "^4.1.1",
+    "json5": "^2.2.2"
   }
 }
