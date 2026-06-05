@@ -17,12 +17,16 @@
     "graphile-migrate": "^1.4.1"
   },
   "resolutions": {
-    "tar": "^7.5.7",
-    "brace-expansion": "^2.0.2",
+    "tar": "^7.5.11",
+    "brace-expansion": "^2.0.3",
     "braces": "^3.0.3",
     "ip": "^1.1.9",
     "semver": "^7.5.2",
     "http-cache-semantics": "^4.1.1",
-    "json5": "^2.2.2"
+    "json5": "^2.2.2",
+    "picomatch": "^2.3.2",
+    "@tootallnate/once": "2.0.1",
+    "minimatch@npm:^3.0.4": "^3.1.4",
+    "minimatch@npm:^5.0.1": "^5.1.8"
   }
 }
