@@ -58,8 +58,9 @@ erDiagram
   site {
     INTEGER site_id
     VARCHAR site_code
-    unknown position
-    unknown extent
+    INTEGER typical_profile
+    GEOGRAPHY position
+    GEOGRAPHY extent
   }
   site_project ||--o{ site : fk_site
   site_project ||--o{ project : fk_project
@@ -75,20 +76,24 @@ erDiagram
     INTEGER surface_id
     INTEGER super_surface_id
     INTEGER site_id
-    NULL shape
+    GEOMETRY shape
+    TIMESTAMP time_stamp
   }
   specimen {
     INTEGER specimen_id
     VARCHAR code
     INTEGER plot_id
     INTEGER specimen_prep_process_id
-    INTEGER depth
+    INTEGER upper_depth
+    INTEGER lower_depth
+    INTEGER organisation_id
   }
   site {
     INTEGER site_id
     VARCHAR site_code
-    NULL position
-    NULL extent
+    INTEGER typical_profile
+    GEOGRAPHY position
+    GEOGRAPHY extent
   }
   element {
     INTEGER element_id
@@ -118,7 +123,7 @@ erDiagram
     DATE time_stamp
     VARCHAR map_sheet_code
     NUMERIC positional_accuracy
-    NULL position
+    GEOGRAPHY position
   }
   plot ||--o{ site : fk_site
   surface ||--o{ surface : fk_surface
@@ -128,6 +133,7 @@ erDiagram
   element ||--o{ profile : fk_profile
   specimen ||--o{ plot : fk_plot
   specimen ||--o{ specimen_prep_process : fk_specimen_prep_process
+  site ||--o{ profile : fk_typical_profile
 ```
 
 ### Descriptive Observations
@@ -139,12 +145,20 @@ erDiagram
   observation_desc_surface {
     INTEGER property_desc_surface_id
     INTEGER thesaurus_desc_surface_id
+    INTEGER procedure_desc_id
+  }
+  procedure_desc {
+    INTEGER procedure_desc_id
+    VARCHAR label
+    VARCHAR reference
+    VARCHAR uri
   }
   surface {
     INTEGER surface_id
     INTEGER super_surface_id
     INTEGER site_id
-    unknown shape
+    GEOMETRY shape
+    TIMESTAMP time_stamp
   }
   property_desc_surface {
     INTEGER property_desc_surface_id
@@ -163,25 +177,25 @@ erDiagram
   }
   observation_desc_surface ||--o{ thesaurus_desc_surface : fk_thesaurus_desc_surface
   observation_desc_surface ||--o{ property_desc_surface : fk_property_desc_surface
-  result_desc_surface ||--o{ observation_desc_surface : result_desc_surface_property_desc_surface_id_thesaurus_des_fkey
-  result_desc_surface ||--o{ observation_desc_surface : result_desc_surface_property_desc_surface_id_thesaurus_des_fkey
+  observation_desc_surface ||--o{ procedure_desc : fk_procedure_desc
+  result_desc_surface ||--o{ observation_desc_surface : fk_observation_desc_surface
   result_desc_surface ||--o{ surface : fk_surface
 ```
 
 ### Physio-chemical Observations
 
-These observations only apply to Element. Surface, Plot and Profile have no physio-chemical observations for the time being. Specimen has its own structure, around the table `observation_numeric_specimen`, but it is empty, since its nature remains unknown. 
+Physio-chemical (numeric) observations apply to three Features of Interest: Element, Plot and Specimen. Each has its own observation and result tables (`observation_phys_chem_element` / `result_phys_chem_element`, and the equivalent `_plot` and `_specimen` tables), while the property, procedure and unit of measure are shared across all of them. Surface and Profile have no physio-chemical observations for the time being.
 
 ```mermaid
 erDiagram
-  result_phys_chem {
-    INTEGER result_phys_chem_id
-    INTEGER observation_phys_chem_id
-    INTEGER element_id
-    NUMERIC value
-  }
   property_phys_chem {
     INTEGER property_phys_chem_id
+    VARCHAR label
+    VARCHAR uri
+  }
+  procedure_phys_chem {
+    INTEGER procedure_phys_chem_id
+    INTEGER broader_id
     VARCHAR label
     VARCHAR uri
   }
@@ -190,33 +204,70 @@ erDiagram
     VARCHAR label
     VARCHAR uri
   }
-  observation_phys_chem {
-    INTEGER observation_phys_chem_id
+  observation_phys_chem_element {
+    INTEGER observation_phys_chem_element_id
     INTEGER property_phys_chem_id
     INTEGER procedure_phys_chem_id
     INTEGER unit_of_measure_id
     NUMERIC value_min
     NUMERIC value_max
   }
-  element {
+  result_phys_chem_element {
+    INTEGER result_phys_chem_element_id
+    INTEGER observation_phys_chem_element_id
     INTEGER element_id
-    element_type type
-    INTEGER profile_id
-    INTEGER order_element
-    INTEGER upper_depth
-    INTEGER lower_depth
+    NUMERIC value
+    INTEGER individual_id
   }
-  procedure_phys_chem {
+  observation_phys_chem_plot {
+    INTEGER observation_phys_chem_plot_id
+    INTEGER property_phys_chem_id
     INTEGER procedure_phys_chem_id
-    INTEGER broader_id
-    VARCHAR label
-    VARCHAR uri
+    INTEGER unit_of_measure_id
+    NUMERIC value_min
+    NUMERIC value_max
   }
-  observation_phys_chem ||--o{ procedure_phys_chem : fk_procedure_phys_chem
-  observation_phys_chem ||--o{ unit_of_measure : fk_unit_of_measure
-  observation_phys_chem ||--o{ property_phys_chem : fk_property_phys_chem
-  result_phys_chem ||--o{ element : fk_element
-  result_phys_chem ||--o{ observation_phys_chem : fk_observation_phys_chem
+  result_phys_chem_plot {
+    INTEGER result_phys_chem_plot_id
+    INTEGER observation_phys_chem_plot_id
+    INTEGER plot_id
+    NUMERIC value
+    INTEGER organisation_id
+  }
+  observation_phys_chem_specimen {
+    INTEGER observation_phys_chem_specimen_id
+    INTEGER property_phys_chem_id
+    INTEGER procedure_phys_chem_id
+    INTEGER unit_of_measure_id
+    NUMERIC value_min
+    NUMERIC value_max
+  }
+  result_phys_chem_specimen {
+    INTEGER result_phys_chem_specimen_id
+    INTEGER observation_phys_chem_specimen_id
+    INTEGER specimen_id
+    NUMERIC value
+    INTEGER organisation_id
+  }
+  procedure_phys_chem ||--o{ procedure_phys_chem : fk_broader
+
+  observation_phys_chem_element ||--o{ property_phys_chem : fk_property_phys_chem
+  observation_phys_chem_element ||--o{ procedure_phys_chem : fk_procedure_phys_chem
+  observation_phys_chem_element ||--o{ unit_of_measure : fk_unit_of_measure
+  result_phys_chem_element ||--o{ observation_phys_chem_element : fk_observation_phys_chem_element
+  result_phys_chem_element ||--o{ element : fk_element
+
+  observation_phys_chem_plot ||--o{ property_phys_chem : fk_property_phys_chem
+  observation_phys_chem_plot ||--o{ procedure_phys_chem : fk_procedure_phys_chem
+  observation_phys_chem_plot ||--o{ unit_of_measure : fk_unit_of_measure
+  result_phys_chem_plot ||--o{ observation_phys_chem_plot : fk_observation_phys_chem_plot
+  result_phys_chem_plot ||--o{ plot : fk_plot
+
+  observation_phys_chem_specimen ||--o{ property_phys_chem : fk_property_phys_chem
+  observation_phys_chem_specimen ||--o{ procedure_phys_chem : fk_procedure_phys_chem
+  observation_phys_chem_specimen ||--o{ unit_of_measure : fk_unit_of_measure
+  result_phys_chem_specimen ||--o{ observation_phys_chem_specimen : fk_observation_phys_chem_specimen
+  result_phys_chem_specimen ||--o{ specimen : fk_specimen
 ```
 
 Meta-data model (VCard)
@@ -337,3 +388,32 @@ The schema includes bridge functions that create materialized views for simplifi
 -- Create export views
 SELECT core.bridge_process_all(NULL, 'specimen', NULL);
 ```
+
+## Optional extensions
+
+Optional add-ons live in `migrations/manual/` and are applied manually with `psql`, after the base
+schema is in place. They are not included in the release dumps.
+
+The **spectral extension** adds spectral data and spectral-derived physico-chemical results for the
+Specimen feature of interest (nine `core.*` tables, a validation trigger and ETL helper functions).
+It is idempotent and depends only on existing base tables.
+
+> **Status:** Work in progress. The spectral extension is a working version and still needs to be
+> validated by domain experts before production use.
+
+Apply it with `psql`:
+
+```bash
+psql -d your_db -f migrations/manual/spectral_extension/spectral_extension.sql
+```
+
+or via graphile-migrate's `run` command (runs against `DATABASE_URL`; `--shadow` / `--root`
+available):
+
+```bash
+yarn gm run migrations/manual/spectral_extension/spectral_extension.sql
+```
+
+See [migrations/manual/README.md](migrations/manual/README.md) and
+[the spectral extension docs](migrations/manual/spectral_extension/docs/readme.md) for the data
+model and usage examples.
