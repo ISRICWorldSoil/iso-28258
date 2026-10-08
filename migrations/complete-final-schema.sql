@@ -3,8 +3,8 @@
 --
 
 
--- Dumped from database version 18.4 (Homebrew)
--- Dumped by pg_dump version 18.4 (Homebrew)
+-- Dumped from database version 18.6 (Debian 18.6-1.pgdg13+2)
+-- Dumped by pg_dump version 18.4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -270,7 +270,10 @@ BEGIN
         date_text := replace(creation_date::text, '-', '_');
     END IF;
 
-    -- Build pivot columns dynamically from the observation view (for numeric results)
+    -- Build pivot columns dynamically from the observation view (for numeric results).
+    -- vw_observation holds one row per (observation_code, project_id), so a code shared
+    -- by several projects appears several times. Pivot over DISTINCT codes so each
+    -- observation yields exactly one column (issue #27).
     EXECUTE format(
         'SELECT string_agg(
             format(''MAX(CASE WHEN combined_data.observation_code = %%L THEN combined_data.value END) AS %%I'',
@@ -279,7 +282,7 @@ BEGIN
             ),
             '', '' || E''\n        ''
         )
-        FROM core.vw_observation_%s vo',
+        FROM (SELECT DISTINCT observation_code FROM core.vw_observation_%s) vo',
         date_text
     ) INTO pivot_columns;
 
@@ -7297,5 +7300,5 @@ ALTER TABLE ONLY metadata.organisation
 -- PostgreSQL database dump complete
 --
 
-\unrestrict NwoGgs52JxJjPIhp0wjkYam7oCnW9bWIBddWazCXc2Zg5s2D7if61IOasEiz4Tk
+\unrestrict CEqFoIuPpHxAHiebB5Zm13cKaYzxcmhF5lJVC72qEL84lfg2CVwVsXNGHzD0TmW
 
